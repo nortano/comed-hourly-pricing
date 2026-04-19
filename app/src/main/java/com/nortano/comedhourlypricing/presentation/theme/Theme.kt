@@ -1,4 +1,4 @@
-package com.example.comedhourlypricing.presentation.theme
+package com.nortano.comedhourlypricing.presentation.theme
 
 import androidx.compose.runtime.Composable
 import androidx.wear.compose.material.MaterialTheme

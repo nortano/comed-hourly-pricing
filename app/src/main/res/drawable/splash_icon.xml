@@ -1,27 +1,102 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:width="48dp"
-        android:height="48dp"
-        android:gravity="center">
-        <shape android:shape="oval">
-            <solid android:color="#FFFFFF" />
-        </shape>
-    </item>
-    <item
-        android:width="40dp"
-        android:height="40dp"
-        android:gravity="center">
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
         <vector
-            android:width="24dp"
-            android:height="24dp"
-            android:tint="#000000"
-            android:viewportWidth="24"
-            android:viewportHeight="24">
-            <path
-                android:fillColor="#FF000000"
-                android:pathData="M17.6,11.48 L19.44,8.3a0.63,0.63 0,0 0,-1.09 -0.63l-1.88,3.24a11.43,11.43 0,0 0,-8.94 0L5.65,7.67a0.63,0.63 0,0 0,-1.09 0.63L6.4,11.48A10.81,10.81 0,0 0,1 20L23,20A10.81,10.81 0,0 0,17.6 11.48ZM7,17.25A1.25,1.25 0,1 1,8.25 16,1.25 1.25,0 0,1 7,17.25ZM17,17.25A1.25,1.25 0,1 1,18.25 16,1.25 1.25,0 0,1 17,17.25Z" />
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+
+            <!-- Spirograph Wave / Energy Aura -->
+            <group android:pivotX="54" android:pivotY="54" android:rotation="0">
+                <path android:pathData="M20,54 A34,22 0 1,1 88,54 A34,22 0 1,1 20,54"
+                      android:strokeWidth="1.5">
+                    <aapt:attr name="android:strokeColor">
+                        <gradient android:type="sweep" android:centerX="54" android:centerY="54">
+                            <item android:color="#00FFFF" android:offset="0.0" />
+                            <item android:color="#7000FF" android:offset="0.33" />
+                            <item android:color="#00FFFF" android:offset="0.66" />
+                            <item android:color="#7000FF" android:offset="1.0" />
+                        </gradient>
+                    </aapt:attr>
+                </path>
+            </group>
+
+            <group android:pivotX="54" android:pivotY="54" android:rotation="45">
+                <path android:pathData="M20,54 A34,22 0 1,1 88,54 A34,22 0 1,1 20,54"
+                      android:strokeWidth="1.5">
+                    <aapt:attr name="android:strokeColor">
+                        <gradient android:type="sweep" android:centerX="54" android:centerY="54">
+                            <item android:color="#00FFFF" android:offset="0.0" />
+                            <item android:color="#7000FF" android:offset="0.33" />
+                            <item android:color="#00FFFF" android:offset="0.66" />
+                            <item android:color="#7000FF" android:offset="1.0" />
+                        </gradient>
+                    </aapt:attr>
+                </path>
+            </group>
+
+            <group android:pivotX="54" android:pivotY="54" android:rotation="90">
+                <path android:pathData="M20,54 A34,22 0 1,1 88,54 A34,22 0 1,1 20,54"
+                      android:strokeWidth="1.5">
+                    <aapt:attr name="android:strokeColor">
+                        <gradient android:type="sweep" android:centerX="54" android:centerY="54">
+                            <item android:color="#00FFFF" android:offset="0.0" />
+                            <item android:color="#7000FF" android:offset="0.33" />
+                            <item android:color="#00FFFF" android:offset="0.66" />
+                            <item android:color="#7000FF" android:offset="1.0" />
+                        </gradient>
+                    </aapt:attr>
+                </path>
+            </group>
+
+            <group android:pivotX="54" android:pivotY="54" android:rotation="135">
+                <path android:pathData="M20,54 A34,22 0 1,1 88,54 A34,22 0 1,1 20,54"
+                      android:strokeWidth="1.5">
+                    <aapt:attr name="android:strokeColor">
+                        <gradient android:type="sweep" android:centerX="54" android:centerY="54">
+                            <item android:color="#00FFFF" android:offset="0.0" />
+                            <item android:color="#7000FF" android:offset="0.33" />
+                            <item android:color="#00FFFF" android:offset="0.66" />
+                            <item android:color="#7000FF" android:offset="1.0" />
+                        </gradient>
+                    </aapt:attr>
+                </path>
+            </group>
+
+            <!-- Center Lightning Bolt (Grouped for scaling animation) -->
+            <group android:name="bolt_group" android:pivotX="54" android:pivotY="54">
+                <path android:pathData="M58,26 L36,54 h16 L46,82 L72,48 H54 Z"
+                      android:fillColor="#FFFFFF"
+                      android:strokeColor="#FFFFFF"
+                      android:strokeWidth="2"
+                      android:strokeLineJoin="round" />
+            </group>
         </vector>
-    </item>
-</layer-list>
+    </aapt:attr>
+
+    <!-- Throb Animation targeting the bolt group -->
+    <target android:name="bolt_group">
+        <aapt:attr name="android:animation">
+            <set>
+                <objectAnimator
+                    android:propertyName="scaleX"
+                    android:duration="800"
+                    android:valueFrom="1.0"
+                    android:valueTo="1.15"
+                    android:repeatCount="infinite"
+                    android:repeatMode="reverse"
+                    android:interpolator="@android:interpolator/fast_out_slow_in"/>
+                <objectAnimator
+                    android:propertyName="scaleY"
+                    android:duration="800"
+                    android:valueFrom="1.0"
+                    android:valueTo="1.15"
+                    android:repeatCount="infinite"
+                    android:repeatMode="reverse"
+                    android:interpolator="@android:interpolator/fast_out_slow_in"/>
+            </set>
+        </aapt:attr>
+    </target>
+</animated-vector>

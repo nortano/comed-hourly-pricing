@@ -1,0 +1,71 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Spirograph Wave / Energy Aura -->
+    <group android:pivotX="54" android:pivotY="54" android:rotation="0">
+        <path android:pathData="M20,54 A34,22 0 1,1 88,54 A34,22 0 1,1 20,54"
+              android:strokeWidth="1.5">
+            <aapt:attr name="android:strokeColor">
+                <gradient android:type="sweep" android:centerX="54" android:centerY="54">
+                    <item android:color="#00FFFF" android:offset="0.0" />
+                    <item android:color="#7000FF" android:offset="0.33" />
+                    <item android:color="#00FFFF" android:offset="0.66" />
+                    <item android:color="#7000FF" android:offset="1.0" />
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
+
+    <group android:pivotX="54" android:pivotY="54" android:rotation="45">
+        <path android:pathData="M20,54 A34,22 0 1,1 88,54 A34,22 0 1,1 20,54"
+              android:strokeWidth="1.5">
+            <aapt:attr name="android:strokeColor">
+                <gradient android:type="sweep" android:centerX="54" android:centerY="54">
+                    <item android:color="#00FFFF" android:offset="0.0" />
+                    <item android:color="#7000FF" android:offset="0.33" />
+                    <item android:color="#00FFFF" android:offset="0.66" />
+                    <item android:color="#7000FF" android:offset="1.0" />
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
+
+    <group android:pivotX="54" android:pivotY="54" android:rotation="90">
+        <path android:pathData="M20,54 A34,22 0 1,1 88,54 A34,22 0 1,1 20,54"
+              android:strokeWidth="1.5">
+            <aapt:attr name="android:strokeColor">
+                <gradient android:type="sweep" android:centerX="54" android:centerY="54">
+                    <item android:color="#00FFFF" android:offset="0.0" />
+                    <item android:color="#7000FF" android:offset="0.33" />
+                    <item android:color="#00FFFF" android:offset="0.66" />
+                    <item android:color="#7000FF" android:offset="1.0" />
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
+
+    <group android:pivotX="54" android:pivotY="54" android:rotation="135">
+        <path android:pathData="M20,54 A34,22 0 1,1 88,54 A34,22 0 1,1 20,54"
+              android:strokeWidth="1.5">
+            <aapt:attr name="android:strokeColor">
+                <gradient android:type="sweep" android:centerX="54" android:centerY="54">
+                    <item android:color="#00FFFF" android:offset="0.0" />
+                    <item android:color="#7000FF" android:offset="0.33" />
+                    <item android:color="#00FFFF" android:offset="0.66" />
+                    <item android:color="#7000FF" android:offset="1.0" />
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
+
+    <!-- Center Lightning Bolt -->
+    <path android:pathData="M58,26 L36,54 h16 L46,82 L72,48 H54 Z"
+          android:fillColor="#FFFFFF"
+          android:strokeColor="#FFFFFF"
+          android:strokeWidth="2"
+          android:strokeLineJoin="round" />
+</vector>

@@ -1,8 +1,13 @@
 <resources>
 
     <style name="MainActivityTheme.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@android:color/black</item>
+        <!-- Match the background color to the deep blue of the app icon -->
+        <item name="windowSplashScreenBackground">#0D0D2B</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <!-- Duration to keep the animation going -->
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+        <!-- Ensure the splash screen doesn't force a pure black fallback -->
+        <item name="android:windowBackground">#0D0D2B</item>
         <item name="postSplashScreenTheme">@android:style/Theme.DeviceDefault</item>
     </style>
 </resources>
