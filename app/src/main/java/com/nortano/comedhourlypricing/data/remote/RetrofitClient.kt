@@ -1,11 +1,11 @@
 package com.nortano.comedhourlypricing.data.remote
 
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     private const val BASE_URL = "https://hourlypricing.comed.com/"
@@ -20,9 +20,9 @@ object RetrofitClient {
     private val okHttpClient: OkHttpClient =
         OkHttpClient
             .Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
+            .connectTimeout(10.seconds)
+            .readTimeout(10.seconds)
+            .writeTimeout(10.seconds)
             .build()
 
     private val retrofit: Retrofit =
