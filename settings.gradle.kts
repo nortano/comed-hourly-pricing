@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ComEd Pricing"
+rootProject.name = "ComEd Hourly Pricing"
 include(":app")

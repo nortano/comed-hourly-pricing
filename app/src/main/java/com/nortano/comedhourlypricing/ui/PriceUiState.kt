@@ -5,7 +5,8 @@ enum class PriceTier {
     NORMAL,
     ELEVATED,
     HIGH,
-    UNKNOWN;
+    UNKNOWN,
+    ;
 
     companion object {
         fun fromPrice(priceText: String?): PriceTier {
@@ -27,5 +28,5 @@ data class PriceUiState(
     val hourlyAvgPriceText: String? = null,
     val priceTier: PriceTier = PriceTier.UNKNOWN,
     val updatedAtMillis: Long? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
 )

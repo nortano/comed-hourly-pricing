@@ -5,4 +5,14 @@
         <ignore path="res/drawable/tile_preview.png" />
         <ignore path="res/drawable-round/tile_preview.png" />
     </issue>
+
+    <!--
+        The kotlin version in libs.versions.toml only drives the serialization/compose/ktlint
+        plugins. The Kotlin compiler version itself is controlled by AGP's built-in Kotlin,
+        so upgrading this entry independently risks plugin double-registration. Suppress
+        until AGP is bumped to a version that bundles the newer Kotlin.
+    -->
+    <issue id="NewerVersionAvailable">
+        <ignore regexp="libs\.versions\.toml.*kotlin\s*=" />
+    </issue>
 </lint>

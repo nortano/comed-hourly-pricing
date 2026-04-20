@@ -1,0 +1,96 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
+
+      - name: Run unit tests with coverage
+        run: ./gradlew :app:koverHtmlReport :app:koverXmlReport
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: test-report
+          path: app/build/reports/tests/testDebugUnitTest/
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          python3 - <<'EOF'
+          import xml.etree.ElementTree as ET, os
+
+          tree = ET.parse("app/build/reports/kover/report.xml")
+          root = tree.getroot()
+
+          def pct(covered, missed):
+              total = covered + missed
+              return 100.0 if total == 0 else covered / total * 100
+
+          def get_counter(el, kind):
+              for c in el.findall("counter"):
+                  if c.get("type") == kind:
+                      return int(c.get("covered", 0)), int(c.get("missed", 0))
+              return 0, 0
+
+          # Report-level totals
+          row = []
+          for kind, label in [("LINE", "Lines"), ("BRANCH", "Branches"), ("INSTRUCTION", "Instructions")]:
+              cov, mis = get_counter(root, kind)
+              row.append((label, cov, mis, pct(cov, mis)))
+
+          # Per-package breakdown (map slash path → dot name)
+          packages = []
+          for pkg in root.findall("package"):
+              name = pkg.get("name", "").replace("/", ".")
+              cov, mis = get_counter(pkg, "LINE")
+              packages.append((name, cov, mis, pct(cov, mis)))
+          packages.sort(key=lambda x: x[0])
+
+          lines = []
+          lines.append("## Code Coverage\n")
+          lines.append("| Metric | Covered | Missed | Total | % |")
+          lines.append("|--------|--------:|-------:|------:|--:|")
+          for label, cov, mis, p in row:
+              lines.append(f"| {label} | {cov} | {mis} | {cov+mis} | {p:.1f}% |")
+
+          if packages:
+              lines.append("")
+              lines.append("<details><summary>Package breakdown (lines)</summary>\n")
+              lines.append("| Package | Covered | Missed | % |")
+              lines.append("|---------|--------:|-------:|--:|")
+              for name, cov, mis, p in packages:
+                  lines.append(f"| `{name}` | {cov} | {mis} | {p:.1f}% |")
+              lines.append("")
+              lines.append("</details>")
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write("\n".join(lines) + "\n")
+          EOF
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-report
+          path: app/build/reports/kover/html/

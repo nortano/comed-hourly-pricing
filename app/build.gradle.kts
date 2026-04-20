@@ -6,11 +6,13 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinSerialization)
     alias(libs.plugins.kotlinCompose)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.kover)
 }
 
 android {
     namespace = "com.nortano.comedhourlypricing"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.nortano.comedhourlypricing"
@@ -21,7 +23,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
     }
 
     buildTypes {
@@ -29,18 +30,13 @@ android {
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_17)
-        }
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     buildFeatures {
         compose = true
@@ -49,6 +45,12 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
     }
 }
 
@@ -77,7 +79,7 @@ dependencies {
     implementation(libs.compose.material.icons.extended)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.datastore.preferences)
-    implementation("androidx.wear.watchface:watchface-complications-data-source-ktx:1.3.0")
+    implementation(libs.watchface.complications.data.source.ktx)
     implementation(libs.protolayout)
     implementation(libs.protolayout.material)
     implementation(libs.protolayout.expression)
@@ -90,7 +92,6 @@ dependencies {
     debugImplementation(libs.wear.tiles.tooling)
     debugImplementation(libs.wear.tiles.tooling.preview)
     debugImplementation(libs.wear.tooling.preview)
-
 
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.ui.test.junit4)

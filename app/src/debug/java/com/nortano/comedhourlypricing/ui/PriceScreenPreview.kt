@@ -10,14 +10,15 @@ import androidx.wear.tooling.preview.devices.WearDevices
 fun PriceScreenPreview() {
     MaterialTheme {
         PriceScreenContent(
-            state = PriceUiState(
-                priceText = "2.4",
-                hourlyAvgPriceText = "2.5",
-                priceTier = PriceTier.NORMAL,
-                isRefreshing = false,
-                updatedAtMillis = System.currentTimeMillis() - 1000 * 60 * 5 // 5 minutes ago
-            ),
-            onRefresh = {}
+            state =
+                PriceUiState(
+                    priceText = "2.4",
+                    hourlyAvgPriceText = "2.5",
+                    priceTier = PriceTier.NORMAL,
+                    isRefreshing = false,
+                    updatedAtMillis = System.currentTimeMillis() - 1000 * 60 * 5, // 5 minutes ago
+                ),
+            onRefresh = {},
         )
     }
 }
