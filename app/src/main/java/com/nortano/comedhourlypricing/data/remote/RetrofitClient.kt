@@ -1,11 +1,11 @@
 package com.nortano.comedhourlypricing.data.remote
 
-import kotlin.time.Duration.Companion.seconds
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import kotlin.time.Duration.Companion.seconds
 
 object RetrofitClient {
     private const val BASE_URL = "https://hourlypricing.comed.com/"
