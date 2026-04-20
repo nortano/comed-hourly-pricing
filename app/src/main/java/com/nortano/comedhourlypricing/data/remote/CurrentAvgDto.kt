@@ -6,5 +6,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CurrentAvgDto(
     @SerialName("millisUTC") val millisUtc: String? = null,
-    @SerialName("price") val price: String? = null
+    @SerialName("price") val price: String? = null,
 )

@@ -12,9 +12,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class PriceViewModel(
-    private val repository: PriceRepository
+    private val repository: PriceRepository,
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow(PriceUiState())
     val uiState: StateFlow<PriceUiState> = _uiState.asStateFlow()
 
@@ -25,7 +24,7 @@ class PriceViewModel(
                 it.copy(
                     priceText = cached?.price,
                     priceTier = PriceTier.fromPrice(cached?.price),
-                    updatedAtMillis = cached?.timestampMillisUtc
+                    updatedAtMillis = cached?.timestampMillisUtc,
                 )
             }
             refresh()
@@ -49,29 +48,35 @@ class PriceViewModel(
                         hourlyAvgPriceText = hourlyAvgResult.data.price,
                         priceTier = PriceTier.fromPrice(fiveMinResult.data.price),
                         updatedAtMillis = fiveMinResult.data.timestampMillisUtc,
-                        errorMessage = null
+                        errorMessage = null,
                     )
                 }
             } else {
-                val errorMsg = when {
-                    fiveMinResult is FetchResult.Error -> fiveMinResult.message
-                    hourlyAvgResult is FetchResult.Error -> hourlyAvgResult.message
-                    else -> "Update failed"
-                }
+                val errorMsg =
+                    when {
+                        fiveMinResult is FetchResult.Error -> fiveMinResult.message
+                        hourlyAvgResult is FetchResult.Error -> hourlyAvgResult.message
+                        else -> "Update failed"
+                    }
 
                 _uiState.update {
-                    val fallbackPrice = when (fiveMinResult) {
-                        is FetchResult.Success -> fiveMinResult.data.price
-                        is FetchResult.Error -> fiveMinResult.cachedFallback?.price ?: it.priceText
-                    }
-                    val hourlyFallbackPrice = when (hourlyAvgResult) {
-                        is FetchResult.Success -> hourlyAvgResult.data.price
-                        is FetchResult.Error -> hourlyAvgResult.cachedFallback?.price ?: it.hourlyAvgPriceText
-                    }
-                    val fallbackTimestamp = when (fiveMinResult) {
-                        is FetchResult.Success -> fiveMinResult.data.timestampMillisUtc
-                        is FetchResult.Error -> fiveMinResult.cachedFallback?.timestampMillisUtc ?: it.updatedAtMillis
-                    }
+                    val fallbackPrice =
+                        when (fiveMinResult) {
+                            is FetchResult.Success -> fiveMinResult.data.price
+                            is FetchResult.Error -> fiveMinResult.cachedFallback?.price ?: it.priceText
+                        }
+                    val hourlyFallbackPrice =
+                        when (hourlyAvgResult) {
+                            is FetchResult.Success -> hourlyAvgResult.data.price
+                            is FetchResult.Error -> hourlyAvgResult.cachedFallback?.price ?: it.hourlyAvgPriceText
+                        }
+                    val fallbackTimestamp =
+                        when (fiveMinResult) {
+                            is FetchResult.Success -> fiveMinResult.data.timestampMillisUtc
+                            is FetchResult.Error ->
+                                fiveMinResult.cachedFallback?.timestampMillisUtc
+                                    ?: it.updatedAtMillis
+                        }
 
                     it.copy(
                         isRefreshing = false,
@@ -79,17 +84,17 @@ class PriceViewModel(
                         hourlyAvgPriceText = hourlyFallbackPrice,
                         priceTier = PriceTier.fromPrice(fallbackPrice),
                         updatedAtMillis = fallbackTimestamp,
-                        errorMessage = errorMsg
+                        errorMessage = errorMsg,
                     )
                 }
             }
         }
     }
 
-    class Factory(private val repository: PriceRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repository: PriceRepository,
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return PriceViewModel(repository) as T
-        }
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = PriceViewModel(repository) as T
     }
 }

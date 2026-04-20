@@ -1,6 +1,5 @@
 <resources>
-    <string name="app_name">ComEd Pricing</string>
-    <string name="loading">Loading…</string>
+    <string name="app_name">ComEd Hourly Pricing</string>
     <string name="error_label">Error</string>
     <string name="no_data">No data</string>
     <string name="unit_label">¢/kWh</string>
@@ -11,9 +10,6 @@
     <string name="refresh_description">Refresh</string>
     <string name="price_with_unit">%1$s ¢</string>
     <string name="as_of_time">As of %1$s</string>
-    <string name="tile_label">ComEd Price</string>
-    <string name="fetch_error">Failed to fetch data</string>
-    <string name="no_price_data">No price data available</string>
-    <string name="update_failed">Update failed</string>
+    <string name="tile_label">ComEd Hourly Price</string>
     <string name="empty_price">--</string>
 </resources>

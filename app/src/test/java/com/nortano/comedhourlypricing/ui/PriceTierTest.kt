@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class PriceTierTest {
-
     @Test
     fun `fromPrice returns UNKNOWN for null or invalid input`() {
         assertEquals(PriceTier.UNKNOWN, PriceTier.fromPrice(null))

@@ -17,16 +17,18 @@ class MainActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        val repository = PriceRepository(
-            apiService = RetrofitClient.apiService,
-            cacheStore = PriceCacheStore(applicationContext)
-        )
+        val repository =
+            PriceRepository(
+                apiService = RetrofitClient.apiService,
+                cacheStore = PriceCacheStore(applicationContext),
+            )
 
         setContent {
             ComedHourlyPricingTheme {
-                val viewModel: PriceViewModel = viewModel(
-                    factory = PriceViewModel.Factory(repository)
-                )
+                val viewModel: PriceViewModel =
+                    viewModel(
+                        factory = PriceViewModel.Factory(repository),
+                    )
 
                 // Keep the splash screen on-screen until the initial refresh finishes
                 splashScreen.setKeepOnScreenCondition {

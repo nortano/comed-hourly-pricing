@@ -9,20 +9,19 @@ import com.nortano.comedhourlypricing.data.remote.RetrofitClient
 
 class SyncWorker(
     appContext: Context,
-    workerParams: WorkerParameters
+    workerParams: WorkerParameters,
 ) : CoroutineWorker(appContext, workerParams) {
-
     override suspend fun doWork(): Result {
         val cacheStore = PriceCacheStore(applicationContext)
         val apiService = RetrofitClient.apiService
         val repository = PriceRepository(apiService, cacheStore)
-        
+
         // Fetch current hour average, the repository saves it to cache which triggers UI updates
         repository.fetchCurrentHourAverage()
-        
+
         return Result.success()
     }
-    
+
     companion object {
         const val WORK_NAME = "PriceSyncWorker"
     }
