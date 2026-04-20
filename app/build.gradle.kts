@@ -1,8 +1,9 @@
 
 
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.jetbrainsKotlinSerialization)
     alias(libs.plugins.kotlinCompose)
 }
@@ -36,8 +37,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
     }
     buildFeatures {
         compose = true
@@ -74,7 +77,7 @@ dependencies {
     implementation(libs.compose.material.icons.extended)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.datastore.preferences)
-    implementation("androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.1")
+    implementation("androidx.wear.watchface:watchface-complications-data-source-ktx:1.3.0")
     implementation(libs.protolayout)
     implementation(libs.protolayout.material)
     implementation(libs.protolayout.expression)
@@ -86,6 +89,7 @@ dependencies {
     implementation(libs.work.runtime.ktx)
     debugImplementation(libs.wear.tiles.tooling)
     debugImplementation(libs.wear.tiles.tooling.preview)
+    debugImplementation(libs.wear.tooling.preview)
 
 
     androidTestImplementation(platform(libs.compose.bom))

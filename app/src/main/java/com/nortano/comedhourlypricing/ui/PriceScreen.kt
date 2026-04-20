@@ -36,8 +36,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
-import androidx.wear.tooling.preview.devices.WearDevices
-import androidx.compose.ui.tooling.preview.Preview
 import com.google.android.horologist.compose.layout.AppScaffold
 import com.google.android.horologist.compose.layout.ScreenScaffold
 import com.nortano.comedhourlypricing.R
@@ -179,22 +177,5 @@ fun PriceScreenContent(
                 }
             }
         }
-    }
-}
-
-@Preview(device = WearDevices.SMALL_ROUND, showSystemUi = true)
-@Composable
-fun PriceScreenPreview() {
-    MaterialTheme {
-        PriceScreenContent(
-            state = PriceUiState(
-                priceText = "2.4",
-                hourlyAvgPriceText = "2.5",
-                priceTier = PriceTier.NORMAL,
-                isRefreshing = false,
-                updatedAtMillis = System.currentTimeMillis() - 1000 * 60 * 5 // 5 minutes ago
-            ),
-            onRefresh = {}
-        )
     }
 }
