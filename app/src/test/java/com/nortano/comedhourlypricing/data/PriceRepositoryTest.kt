@@ -85,6 +85,9 @@ class PriceRepositoryTest {
         }
 
     // --- fetchFiveMinutePrice Tests ---
+    // Only the API wiring is verified here. The shared processResponse() error paths
+    // (empty list, null/blank price) are already covered by the fetchCurrentHourAverage
+    // tests above and exercised through the same private function.
 
     @Test
     fun `fetchFiveMinutePrice returns success and saves to cache when data is valid`() =
@@ -117,39 +120,73 @@ class PriceRepositoryTest {
             assertEquals(fallbackPrice, errorResult.cachedFallback)
         }
 
+    // --- Cache deduplication tests ---
+
     @Test
-    fun `fetchFiveMinutePrice returns error when response list is empty`() =
+    fun `fetchCurrentHourAverage does not save to cache when timestamp is unchanged`() =
         runTest {
-            coEvery { apiService.getFiveMinutePrice() } returns emptyList()
-            coEvery { cacheStore.getCachedPrice() } returns null
+            val existingTimestamp = 1672531200000L
+            val dto = CurrentAvgDto(price = "2.5", millisUtc = existingTimestamp.toString())
+            coEvery { apiService.getCurrentAvg() } returns listOf(dto)
+            // Cache already holds an entry with the same timestamp
+            coEvery { cacheStore.getCachedPrice() } returns CachedPrice("2.5", existingTimestamp)
 
-            val result = repository.fetchFiveMinutePrice()
+            val result = repository.fetchCurrentHourAverage()
 
-            assertTrue(result is FetchResult.Error)
-            assertEquals("No price data available", (result as FetchResult.Error).message)
+            assertTrue(result is FetchResult.Success)
+            coVerify(exactly = 0) { cacheStore.save(any()) }
         }
 
     @Test
-    fun `fetchFiveMinutePrice returns error when price is null`() =
+    fun `fetchCurrentHourAverage saves to cache when timestamp changes`() =
         runTest {
-            coEvery { apiService.getFiveMinutePrice() } returns listOf(CurrentAvgDto(price = null, millisUtc = "100"))
-            coEvery { cacheStore.getCachedPrice() } returns null
+            val newTimestamp = 1672534800000L
+            val dto = CurrentAvgDto(price = "3.0", millisUtc = newTimestamp.toString())
+            coEvery { apiService.getCurrentAvg() } returns listOf(dto)
+            // Cache holds a different (older) timestamp
+            coEvery { cacheStore.getCachedPrice() } returns CachedPrice("2.5", 1672531200000L)
 
-            val result = repository.fetchFiveMinutePrice()
+            val result = repository.fetchCurrentHourAverage()
 
-            assertTrue(result is FetchResult.Error)
-            assertEquals("No price data available", (result as FetchResult.Error).message)
+            assertTrue(result is FetchResult.Success)
+            coVerify(exactly = 1) { cacheStore.save(any()) }
         }
 
     @Test
-    fun `fetchFiveMinutePrice returns error when price is blank`() =
+    fun `fetchCurrentHourAverage uses current time when millisUtc is null`() =
         runTest {
-            coEvery { apiService.getFiveMinutePrice() } returns listOf(CurrentAvgDto(price = "   ", millisUtc = "100"))
+            val beforeCall = System.currentTimeMillis()
+            val dto = CurrentAvgDto(price = "4.0", millisUtc = null)
+            coEvery { apiService.getCurrentAvg() } returns listOf(dto)
             coEvery { cacheStore.getCachedPrice() } returns null
 
-            val result = repository.fetchFiveMinutePrice()
+            val result = repository.fetchCurrentHourAverage()
+            val afterCall = System.currentTimeMillis()
 
-            assertTrue(result is FetchResult.Error)
-            assertEquals("No price data available", (result as FetchResult.Error).message)
+            assertTrue(result is FetchResult.Success)
+            val timestamp = (result as FetchResult.Success).data.timestampMillisUtc
+            assertTrue(
+                "Timestamp should be close to System.currentTimeMillis()",
+                timestamp in beforeCall..afterCall,
+            )
+        }
+
+    @Test
+    fun `fetchCurrentHourAverage uses current time when millisUtc is non-numeric`() =
+        runTest {
+            val beforeCall = System.currentTimeMillis()
+            val dto = CurrentAvgDto(price = "4.0", millisUtc = "not-a-long")
+            coEvery { apiService.getCurrentAvg() } returns listOf(dto)
+            coEvery { cacheStore.getCachedPrice() } returns null
+
+            val result = repository.fetchCurrentHourAverage()
+            val afterCall = System.currentTimeMillis()
+
+            assertTrue(result is FetchResult.Success)
+            val timestamp = (result as FetchResult.Success).data.timestampMillisUtc
+            assertTrue(
+                "Timestamp should be close to System.currentTimeMillis()",
+                timestamp in beforeCall..afterCall,
+            )
         }
 }
