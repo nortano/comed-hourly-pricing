@@ -1,3 +1,6 @@
+[![Test](https://github.com/nortano/comed-hourly-pricing/actions/workflows/test.yml/badge.svg)](https://github.com/nortano/comed-hourly-pricing/actions/workflows/test.yml)
+[![Lint](https://github.com/nortano/comed-hourly-pricing/actions/workflows/lint.yml/badge.svg)](https://github.com/nortano/comed-hourly-pricing/actions/workflows/lint.yml)
+
 # ComEd Hourly Pricing
 
 A Wear OS app that shows real-time [ComEd](https://hourlypricing.comed.com/) electricity prices on your watch. Displays the current 5-minute price and hourly average across three surfaces: an Activity, a Complication, and a Tile.
