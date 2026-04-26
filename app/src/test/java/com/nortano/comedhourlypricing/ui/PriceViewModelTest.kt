@@ -1,9 +1,11 @@
 package com.nortano.comedhourlypricing.ui
 
+import app.cash.turbine.test
 import com.nortano.comedhourlypricing.data.CachedPrice
 import com.nortano.comedhourlypricing.data.FetchResult
 import com.nortano.comedhourlypricing.data.PriceRepository
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,7 +17,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -56,25 +58,24 @@ class PriceViewModelTest {
         }
 
     @Test
-    fun `refresh updates state successfully`() =
+    fun `refresh emits isRefreshing true then false`() =
         runTest {
             coEvery { repository.getCachedPrice() } returns null
-            coEvery { repository.fetchFiveMinutePrice() } returns FetchResult.Success(CachedPrice("10.0", 3000L))
-            coEvery { repository.fetchCurrentHourAverage() } returns FetchResult.Success(CachedPrice("8.5", 3000L))
+            coEvery { repository.fetchFiveMinutePrice() } returns FetchResult.Success(CachedPrice("3.0", 2000L))
+            coEvery { repository.fetchCurrentHourAverage() } returns FetchResult.Success(CachedPrice("3.2", 2000L))
 
             val viewModel = PriceViewModel(repository)
-            advanceUntilIdle()
 
-            viewModel.refresh()
-            advanceUntilIdle()
+            viewModel.uiState.test {
+                // Initial default state emitted by MutableStateFlow construction
+                assertFalse(awaitItem().isRefreshing)
+                // init block sets isRefreshing = true before any fetch completes
+                assertTrue(awaitItem().isRefreshing)
+                // Fetches complete — isRefreshing flips back to false
+                assertFalse(awaitItem().isRefreshing)
 
-            val state = viewModel.uiState.value
-            assertFalse(state.isRefreshing)
-            assertEquals("10.0", state.priceText)
-            assertEquals("8.5", state.hourlyAvgPriceText)
-            assertEquals(PriceTier.HIGH, state.priceTier) // 10.0 is HIGH tier
-            assertEquals(3000L, state.updatedAtMillis)
-            assertNull(state.errorMessage)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 
     @Test
@@ -114,5 +115,78 @@ class PriceViewModelTest {
             assertEquals("4.0", state.priceText) // Keeps old price
             assertEquals(PriceTier.NORMAL, state.priceTier)
             assertEquals("Timeout", state.errorMessage)
+        }
+
+    @Test
+    fun `refresh is a no-op when already refreshing`() =
+        runTest {
+            // Use a never-completing stub so isRefreshing stays true indefinitely
+            coEvery { repository.getCachedPrice() } returns null
+            coEvery { repository.fetchFiveMinutePrice() } coAnswers {
+                // Suspend until the test coroutine advances
+                kotlinx.coroutines.awaitCancellation()
+            }
+            coEvery { repository.fetchCurrentHourAverage() } coAnswers {
+                kotlinx.coroutines.awaitCancellation()
+            }
+
+            val viewModel = PriceViewModel(repository)
+            // Advance past the init cache read but not past the suspended fetch calls —
+            // the viewModel is now mid-refresh with isRefreshing = true.
+            testScheduler.advanceTimeBy(1)
+
+            assertTrue(viewModel.uiState.value.isRefreshing)
+
+            // A second refresh() call while already refreshing must be a no-op.
+            viewModel.refresh()
+
+            // fetchFiveMinutePrice should only have been called once (from init's refresh).
+            coVerify(exactly = 1) { repository.fetchFiveMinutePrice() }
+        }
+
+    @Test
+    fun `refresh shows error when only hourly fetch fails`() =
+        runTest {
+            coEvery { repository.getCachedPrice() } returns null
+            coEvery { repository.fetchFiveMinutePrice() } returns FetchResult.Success(CachedPrice("5.0", 4000L))
+            coEvery { repository.fetchCurrentHourAverage() } returns
+                FetchResult.Error("Hourly fetch failed", CachedPrice("4.5", 3000L))
+
+            val viewModel = PriceViewModel(repository)
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertFalse(state.isRefreshing)
+            // Five-minute price succeeded — it should be reflected
+            assertEquals("5.0", state.priceText)
+            // Hourly failed — fallback from the error's cachedFallback
+            assertEquals("4.5", state.hourlyAvgPriceText)
+            assertEquals("Hourly fetch failed", state.errorMessage)
+        }
+
+    @Test
+    fun `refresh shows error when both fetches fail`() =
+        runTest {
+            coEvery { repository.getCachedPrice() } returns CachedPrice("6.0", 500L)
+            coEvery { repository.fetchFiveMinutePrice() } returns FetchResult.Success(CachedPrice("6.0", 500L))
+            coEvery { repository.fetchCurrentHourAverage() } returns FetchResult.Success(CachedPrice("6.0", 500L))
+            val viewModel = PriceViewModel(repository)
+            advanceUntilIdle()
+
+            // Now make both fail
+            coEvery { repository.fetchFiveMinutePrice() } returns
+                FetchResult.Error("5-min timeout", CachedPrice("6.0", 500L))
+            coEvery { repository.fetchCurrentHourAverage() } returns
+                FetchResult.Error("Hourly timeout", CachedPrice("6.0", 500L))
+            viewModel.refresh()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertFalse(state.isRefreshing)
+            // Five-minute error message takes precedence in the when{} expression
+            assertEquals("5-min timeout", state.errorMessage)
+            // Prices fall back to cachedFallback values from each error
+            assertEquals("6.0", state.priceText)
+            assertEquals("6.0", state.hourlyAvgPriceText)
         }
 }

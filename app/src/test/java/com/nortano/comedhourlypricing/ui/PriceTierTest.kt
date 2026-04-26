@@ -1,14 +1,18 @@
 package com.nortano.comedhourlypricing.ui
 
+import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class PriceTierTest {
     @Test
-    fun `fromPrice returns UNKNOWN for null or invalid input`() {
+    fun `fromPrice returns UNKNOWN for null or non-numeric input`() {
         assertEquals(PriceTier.UNKNOWN, PriceTier.fromPrice(null))
         assertEquals(PriceTier.UNKNOWN, PriceTier.fromPrice("abc"))
         assertEquals(PriceTier.UNKNOWN, PriceTier.fromPrice(""))
+        // "NaN", "Infinity", "-Infinity" are not parseable by toDoubleOrNull() and return null,
+        // so they are caught by the null-return guard on the first line of fromPrice, not by
+        // the explicit isNaN()/isInfinite() checks. The outcome is still UNKNOWN either way.
         assertEquals(PriceTier.UNKNOWN, PriceTier.fromPrice("NaN"))
         assertEquals(PriceTier.UNKNOWN, PriceTier.fromPrice("Infinity"))
         assertEquals(PriceTier.UNKNOWN, PriceTier.fromPrice("-Infinity"))
@@ -39,5 +43,16 @@ class PriceTierTest {
     fun `fromPrice returns HIGH for prices above 9_9`() {
         assertEquals(PriceTier.HIGH, PriceTier.fromPrice("10.0"))
         assertEquals(PriceTier.HIGH, PriceTier.fromPrice("20.5"))
+    }
+
+    // --- color extension property ---
+
+    @Test
+    fun `color returns correct color for each tier`() {
+        assertEquals(Color(0xFF00E5FF), PriceTier.FREE.color)
+        assertEquals(Color(0xFF00E676), PriceTier.NORMAL.color)
+        assertEquals(Color(0xFFFFEA00), PriceTier.ELEVATED.color)
+        assertEquals(Color(0xFFFF1744), PriceTier.HIGH.color)
+        assertEquals(Color.White, PriceTier.UNKNOWN.color)
     }
 }

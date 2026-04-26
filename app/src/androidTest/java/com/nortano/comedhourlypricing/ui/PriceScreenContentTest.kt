@@ -1,10 +1,15 @@
 package com.nortano.comedhourlypricing.ui
 
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.wear.compose.material.MaterialTheme
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -53,12 +58,11 @@ class PriceScreenContentTest {
             }
         }
 
-        // Verify error label is displayed
         composeTestRule.onNodeWithText("Error").assertIsDisplayed()
     }
 
     @Test
-    fun loadingState_showsRefreshIconAndIsDisabled() {
+    fun loadingState_refreshButtonIsDisabled() {
         val state =
             PriceUiState(
                 priceText = "3.5",
@@ -74,13 +78,138 @@ class PriceScreenContentTest {
             }
         }
 
-        // Verify refresh icon
-        val refreshNode = composeTestRule.onNodeWithContentDescription("Refresh")
-        refreshNode.assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Refresh").assertIsDisplayed()
+        // clickable(enabled = false) removes the OnClick semantic action entirely
+        composeTestRule
+            .onNodeWithContentDescription("Refresh")
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+    }
 
-        // Wait, to verify it's disabled, we can check semantics if needed, but the test requirement is:
-        // "Verify the refresh icon exists and is non-clickable (or disabled)."
-        // In Compose, a clickable modifier with `enabled=false` will remove the click action or make it disabled
-        // We can just assert it exists.
+    @Test
+    fun nullPriceText_showsEmptyPlaceholder() {
+        val state =
+            PriceUiState(
+                priceText = null,
+                hourlyAvgPriceText = "3.6",
+                priceTier = PriceTier.UNKNOWN,
+                isRefreshing = false,
+                errorMessage = null,
+            )
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                PriceScreenContent(state = state, onRefresh = {})
+            }
+        }
+
+        // priceText = null → displayPrice = "--" → rendered as "-- ¢"
+        composeTestRule.onNodeWithText("-- ¢").assertIsDisplayed()
+    }
+
+    @Test
+    fun nullHourlyAvgPriceText_showsEmptyPlaceholder() {
+        val state =
+            PriceUiState(
+                priceText = "3.5",
+                hourlyAvgPriceText = null,
+                priceTier = PriceTier.NORMAL,
+                isRefreshing = false,
+                errorMessage = null,
+            )
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                PriceScreenContent(state = state, onRefresh = {})
+            }
+        }
+
+        // hourlyAvgPriceText = null → hourlyPrice = "--" → rendered as "Hourly: --¢"
+        composeTestRule.onNodeWithText("Hourly: --¢", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun nullUpdatedAtMillis_showsNoData() {
+        val state =
+            PriceUiState(
+                priceText = "3.5",
+                hourlyAvgPriceText = "3.6",
+                priceTier = PriceTier.NORMAL,
+                isRefreshing = false,
+                errorMessage = null,
+                updatedAtMillis = null,
+            )
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                PriceScreenContent(state = state, onRefresh = {})
+            }
+        }
+
+        composeTestRule.onNodeWithText("No data").assertIsDisplayed()
+    }
+
+    @Test
+    fun recentUpdatedAtMillis_showsUpdatedJustNow() {
+        val state =
+            PriceUiState(
+                priceText = "3.5",
+                hourlyAvgPriceText = "3.6",
+                priceTier = PriceTier.NORMAL,
+                isRefreshing = false,
+                errorMessage = null,
+                updatedAtMillis = System.currentTimeMillis() - 10_000L, // 10 seconds ago
+            )
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                PriceScreenContent(state = state, onRefresh = {})
+            }
+        }
+
+        composeTestRule.onNodeWithText("Updated just now").assertIsDisplayed()
+    }
+
+    @Test
+    fun blankErrorMessage_doesNotShowErrorLabel() {
+        val state =
+            PriceUiState(
+                priceText = "3.5",
+                hourlyAvgPriceText = "3.6",
+                priceTier = PriceTier.NORMAL,
+                isRefreshing = false,
+                errorMessage = "   ", // blank, not null
+            )
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                PriceScreenContent(state = state, onRefresh = {})
+            }
+        }
+
+        // isNullOrBlank() is true for "   " — the Error label must not appear
+        composeTestRule.onNodeWithText("Error").assertDoesNotExist()
+    }
+
+    @Test
+    fun refreshButton_invokesOnRefreshCallback() {
+        var callbackInvoked = false
+        val state =
+            PriceUiState(
+                priceText = "3.5",
+                hourlyAvgPriceText = "3.6",
+                priceTier = PriceTier.NORMAL,
+                isRefreshing = false,
+                errorMessage = null,
+            )
+
+        composeTestRule.setContent {
+            MaterialTheme {
+                PriceScreenContent(state = state, onRefresh = { callbackInvoked = true })
+            }
+        }
+
+        composeTestRule.onNodeWithContentDescription("Refresh").performClick()
+
+        assertTrue("onRefresh callback should have been invoked", callbackInvoked)
     }
 }
