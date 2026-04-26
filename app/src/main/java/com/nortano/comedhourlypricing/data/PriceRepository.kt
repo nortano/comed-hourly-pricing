@@ -42,7 +42,12 @@ class PriceRepository(
         } else {
             val timestamp = dto.millisUtc?.toLongOrNull() ?: System.currentTimeMillis()
             val cachedPrice = CachedPrice(price = price, timestampMillisUtc = timestamp)
-            cacheStore.save(cachedPrice)
+
+            val currentCache = cacheStore.getCachedPrice()
+            if (currentCache?.timestampMillisUtc != timestamp) {
+                cacheStore.save(cachedPrice)
+            }
+
             FetchResult.Success(cachedPrice)
         }
     }

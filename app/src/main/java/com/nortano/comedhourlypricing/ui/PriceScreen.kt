@@ -28,6 +28,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -113,29 +115,51 @@ fun PriceScreenContent(
                         )
                     }
 
+                    // 5-min Price Label
+                    Text(
+                        text = stringResource(R.string.comed_5_min_price_label),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFFAAAAAA),
+                        modifier = Modifier.padding(bottom = 2.dp),
+                    )
+
                     // Massive Current Price
                     val displayPrice = state.priceText ?: stringResource(R.string.empty_price)
+                    val fullText = stringResource(R.string.price_with_unit, displayPrice)
+
                     Row(
                         verticalAlignment = Alignment.Bottom,
                         horizontalArrangement = Arrangement.Center,
                     ) {
                         Text(
-                            text = displayPrice,
-                            fontSize = 48.sp,
-                            fontWeight = FontWeight.ExtraBold,
+                            text =
+                                buildAnnotatedString {
+                                    val priceStartIndex = fullText.indexOf(displayPrice)
+                                    if (priceStartIndex >= 0) {
+                                        append(fullText)
+                                        // Style the price to be massive
+                                        addStyle(
+                                            style = SpanStyle(fontSize = 48.sp, fontWeight = FontWeight.ExtraBold),
+                                            start = priceStartIndex,
+                                            end = priceStartIndex + displayPrice.length,
+                                        )
+                                        // Style the unit (everything else)
+                                        val unitStyle = SpanStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                                        if (priceStartIndex > 0) {
+                                            addStyle(unitStyle, 0, priceStartIndex)
+                                        }
+                                        if (priceStartIndex + displayPrice.length < fullText.length) {
+                                            addStyle(unitStyle, priceStartIndex + displayPrice.length, fullText.length)
+                                        }
+                                    } else {
+                                        append(fullText)
+                                    }
+                                },
                             color = priceTier.color,
                             maxLines = 1,
                         )
                     }
-
-                    // Unit label right beneath
-                    Text(
-                        text = stringResource(R.string.unit_label),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.LightGray,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
 
                     // Hourly Average
                     val hourlyPrice = state.hourlyAvgPriceText ?: stringResource(R.string.empty_price)
@@ -145,6 +169,7 @@ fun PriceScreenContent(
                         fontWeight = FontWeight.Normal,
                         color = Color.White,
                         textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 8.dp),
                     )
 
                     // Time since last update
