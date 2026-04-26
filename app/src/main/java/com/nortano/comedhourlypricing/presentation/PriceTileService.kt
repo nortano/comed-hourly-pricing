@@ -2,6 +2,7 @@ package com.nortano.comedhourlypricing.presentation
 
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.toColorInt
 import androidx.wear.protolayout.ActionBuilders
 import androidx.wear.protolayout.ColorBuilders
 import androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters
@@ -24,6 +25,7 @@ import com.nortano.comedhourlypricing.data.local.PriceCacheStore
 import com.nortano.comedhourlypricing.data.remote.RetrofitClient
 import com.nortano.comedhourlypricing.ui.PriceTier
 import com.nortano.comedhourlypricing.ui.color
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -33,9 +35,17 @@ class PriceTileService : SuspendingTileService() {
     override suspend fun tileRequest(requestParams: RequestBuilders.TileRequest): TileBuilders.Tile {
         val cacheStore = PriceCacheStore(applicationContext)
 
+        var showNoNewDataMessage = false
+
         if (requestParams.currentState.lastClickableId == "refresh") {
+            val oldTimestamp = cacheStore.getCachedPrice()?.timestampMillisUtc
             val repository = PriceRepository(RetrofitClient.apiService, cacheStore)
             repository.fetchCurrentHourAverage()
+            val newTimestamp = cacheStore.getCachedPrice()?.timestampMillisUtc
+
+            if (oldTimestamp != null && oldTimestamp == newTimestamp) {
+                showNoNewDataMessage = true
+            }
         }
 
         val cachedData = cacheStore.getCachedPrice()
@@ -47,6 +57,16 @@ class PriceTileService : SuspendingTileService() {
 
         val tier = PriceTier.fromPrice(priceText)
         val deviceParams = requestParams.deviceConfiguration
+
+        if (showNoNewDataMessage) {
+            // Schedule a refresh in 5 seconds to clear the "no new data" text
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch {
+                kotlinx.coroutines.delay(5000)
+                androidx.wear.tiles.TileService
+                    .getUpdater(applicationContext)
+                    .requestUpdate(PriceTileService::class.java)
+            }
+        }
 
         return TileBuilders.Tile
             .Builder()
@@ -60,11 +80,13 @@ class PriceTileService : SuspendingTileService() {
                             .setLayout(
                                 LayoutElementBuilders.Layout
                                     .Builder()
-                                    .setRoot(createLayout(priceText, timestamp, tier, deviceParams))
-                                    .build(),
+                                    .setRoot(
+                                        createLayout(priceText, timestamp, tier, deviceParams, showNoNewDataMessage),
+                                    ).build(),
                             ).build(),
                     ).build(),
-            ).build()
+            ).setFreshnessIntervalMillis(0) // Let SyncWorker or manual refresh handle updates
+            .build()
     }
 
     override suspend fun resourcesRequest(requestParams: RequestBuilders.ResourcesRequest): ResourceBuilders.Resources =
@@ -78,6 +100,7 @@ class PriceTileService : SuspendingTileService() {
         timestamp: Long?,
         tier: PriceTier,
         deviceParameters: DeviceParameters,
+        showNoNewDataMessage: Boolean = false,
     ): LayoutElementBuilders.LayoutElement {
         val clickAction =
             ActionBuilders.LaunchAction
@@ -134,8 +157,8 @@ class PriceTileService : SuspendingTileService() {
                 .setPrimaryLabelTextContent(
                     Text
                         .Builder(applicationContext, getString(R.string.tile_label))
-                        .setTypography(Typography.TYPOGRAPHY_TITLE3)
-                        .setColor(ColorBuilders.argb(ContextCompat.getColor(this, android.R.color.white)))
+                        .setTypography(Typography.TYPOGRAPHY_CAPTION1)
+                        .setColor(ColorBuilders.argb("#AAAAAA".toColorInt()))
                         .build(),
                 ).setContent(contentColumn)
 
@@ -155,6 +178,17 @@ class PriceTileService : SuspendingTileService() {
                     refreshClickable,
                     deviceParameters,
                 ).build()
+
+        if (showNoNewDataMessage) {
+            primaryLayout.setSecondaryLabelTextContent(
+                Text
+                    .Builder(applicationContext, getString(R.string.no_new_data))
+                    .setTypography(Typography.TYPOGRAPHY_CAPTION2)
+                    .setItalic(true)
+                    .setColor(ColorBuilders.argb("#AAAAAA".toColorInt()))
+                    .build(),
+            )
+        }
 
         primaryLayout.setPrimaryChipContent(refreshChip)
 

@@ -2,7 +2,6 @@
     <string name="app_name">ComEd Hourly Pricing</string>
     <string name="error_label">Error</string>
     <string name="no_data">No data</string>
-    <string name="unit_label">¢/kWh</string>
     <string name="hourly_label">Hourly: %1$s¢</string>
     <string name="updated_now">Updated just now</string>
     <string name="updated_minutes_ago">Updated %1$dm ago</string>
@@ -12,4 +11,6 @@
     <string name="as_of_time">As of %1$s</string>
     <string name="tile_label">ComEd Hourly Price</string>
     <string name="empty_price">--</string>
+    <string name="comed_5_min_price_label">ComEd 5min Price</string>
+    <string name="no_new_data">(no new data)</string>
 </resources>

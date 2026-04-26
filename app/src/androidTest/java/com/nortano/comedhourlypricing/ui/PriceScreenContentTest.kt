@@ -30,7 +30,7 @@ class PriceScreenContentTest {
         }
 
         // Verify prices
-        composeTestRule.onNodeWithText("3.5").assertIsDisplayed()
+        composeTestRule.onNodeWithText("3.5 ¢").assertIsDisplayed()
         // Wait, hourly label formatting: Hourly: 3.6¢
         // For testing we check substring or exact text
         composeTestRule.onNodeWithText("Hourly: 3.6¢", substring = true).assertIsDisplayed()
