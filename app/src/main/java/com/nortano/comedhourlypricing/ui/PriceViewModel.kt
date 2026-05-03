@@ -23,7 +23,9 @@ class PriceViewModel(
             _uiState.update {
                 it.copy(
                     priceText = cached?.price,
+                    hourlyAvgPriceText = cached?.hourlyAvgPrice,
                     priceTier = PriceTier.fromPrice(cached?.price),
+                    priceTrend = PriceTrend.calculate(cached?.fiveMinPrice, cached?.hourlyAvgPrice),
                     updatedAtMillis = cached?.timestampMillisUtc,
                 )
             }
@@ -37,53 +39,36 @@ class PriceViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
 
-            val fiveMinResult = repository.fetchFiveMinutePrice()
-            val hourlyAvgResult = repository.fetchCurrentHourAverage()
+            val result = repository.fetchPricesCombined()
 
-            if (fiveMinResult is FetchResult.Success && hourlyAvgResult is FetchResult.Success) {
+            if (result is FetchResult.Success) {
                 _uiState.update {
                     it.copy(
                         isRefreshing = false,
-                        priceText = fiveMinResult.data.price,
-                        hourlyAvgPriceText = hourlyAvgResult.data.price,
-                        priceTier = PriceTier.fromPrice(fiveMinResult.data.price),
-                        updatedAtMillis = fiveMinResult.data.timestampMillisUtc,
+                        priceText = result.data.price,
+                        hourlyAvgPriceText = result.data.hourlyAvgPrice,
+                        priceTier = PriceTier.fromPrice(result.data.price),
+                        priceTrend = PriceTrend.calculate(result.data.fiveMinPrice, result.data.hourlyAvgPrice),
+                        updatedAtMillis = result.data.timestampMillisUtc,
                         errorMessage = null,
                     )
                 }
             } else {
-                val errorMsg =
-                    when {
-                        fiveMinResult is FetchResult.Error -> fiveMinResult.message
-                        hourlyAvgResult is FetchResult.Error -> hourlyAvgResult.message
-                        else -> "Update failed"
-                    }
+                val errorMsg = (result as? FetchResult.Error)?.message ?: "Update failed"
+                val fallback = (result as? FetchResult.Error)?.cachedFallback
 
                 _uiState.update {
-                    val fallbackPrice =
-                        when (fiveMinResult) {
-                            is FetchResult.Success -> fiveMinResult.data.price
-                            is FetchResult.Error -> fiveMinResult.cachedFallback?.price ?: it.priceText
-                        }
-                    val hourlyFallbackPrice =
-                        when (hourlyAvgResult) {
-                            is FetchResult.Success -> hourlyAvgResult.data.price
-                            is FetchResult.Error -> hourlyAvgResult.cachedFallback?.price ?: it.hourlyAvgPriceText
-                        }
-                    val fallbackTimestamp =
-                        when (fiveMinResult) {
-                            is FetchResult.Success -> fiveMinResult.data.timestampMillisUtc
-                            is FetchResult.Error ->
-                                fiveMinResult.cachedFallback?.timestampMillisUtc
-                                    ?: it.updatedAtMillis
-                        }
+                    val price = fallback?.price ?: it.priceText
+                    val hourly = fallback?.hourlyAvgPrice ?: it.hourlyAvgPriceText
+                    val fiveMin = fallback?.fiveMinPrice ?: it.priceText
 
                     it.copy(
                         isRefreshing = false,
-                        priceText = fallbackPrice,
-                        hourlyAvgPriceText = hourlyFallbackPrice,
-                        priceTier = PriceTier.fromPrice(fallbackPrice),
-                        updatedAtMillis = fallbackTimestamp,
+                        priceText = price,
+                        hourlyAvgPriceText = hourly,
+                        priceTier = PriceTier.fromPrice(price),
+                        priceTrend = PriceTrend.calculate(fiveMin, hourly),
+                        updatedAtMillis = fallback?.timestampMillisUtc ?: it.updatedAtMillis,
                         errorMessage = errorMsg,
                     )
                 }

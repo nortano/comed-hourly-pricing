@@ -2,6 +2,8 @@ package com.nortano.comedhourlypricing.data
 
 import com.nortano.comedhourlypricing.data.local.PriceCacheStore
 import com.nortano.comedhourlypricing.data.remote.ApiService
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 class PriceRepository(
     private val apiService: ApiService,
@@ -9,46 +11,52 @@ class PriceRepository(
 ) {
     suspend fun getCachedPrice(): CachedPrice? = cacheStore.getCachedPrice()
 
-    suspend fun fetchCurrentHourAverage(): FetchResult =
+    suspend fun fetchPricesCombined(): FetchResult =
         try {
-            val response = apiService.getCurrentAvg()
-            processResponse(response)
-        } catch (exception: Exception) {
-            FetchResult.Error(
-                message = exception.message ?: "Failed to fetch data",
-                cachedFallback = cacheStore.getCachedPrice(),
-            )
-        }
+            coroutineScope {
+                val fiveMinDeferred = async { apiService.getFiveMinutePrice() }
+                val hourlyAvgDeferred = async { apiService.getCurrentAvg() }
 
-    suspend fun fetchFiveMinutePrice(): FetchResult =
-        try {
-            val response = apiService.getFiveMinutePrice()
-            processResponse(response)
-        } catch (exception: Exception) {
-            FetchResult.Error(
-                message = exception.message ?: "Failed to fetch data",
-                cachedFallback = cacheStore.getCachedPrice(),
-            )
-        }
+                val fiveMinResponse = fiveMinDeferred.await()
+                val hourlyAvgResponse = hourlyAvgDeferred.await()
 
-    private suspend fun processResponse(
-        response: List<com.nortano.comedhourlypricing.data.remote.CurrentAvgDto>,
-    ): FetchResult {
-        val dto = response.firstOrNull()
-        val price = dto?.price
+                val fiveMinDto = fiveMinResponse.firstOrNull()
+                val hourlyAvgDto = hourlyAvgResponse.firstOrNull()
 
-        return if (price.isNullOrBlank()) {
-            FetchResult.Error("No price data available", cacheStore.getCachedPrice())
-        } else {
-            val timestamp = dto.millisUtc?.toLongOrNull() ?: System.currentTimeMillis()
-            val cachedPrice = CachedPrice(price = price, timestampMillisUtc = timestamp)
+                val fiveMinPrice = fiveMinDto?.price
+                val hourlyAvgPrice = hourlyAvgDto?.price
 
-            val currentCache = cacheStore.getCachedPrice()
-            if (currentCache?.timestampMillisUtc != timestamp) {
-                cacheStore.save(cachedPrice)
+                if (fiveMinPrice.isNullOrBlank() || hourlyAvgPrice.isNullOrBlank()) {
+                    FetchResult.Error("Missing price data", cacheStore.getCachedPrice())
+                } else {
+                    val timestamp = fiveMinDto.millisUtc?.toLongOrNull() ?: System.currentTimeMillis()
+                    val cachedPrice =
+                        CachedPrice(
+                            price = fiveMinPrice,
+                            timestampMillisUtc = timestamp,
+                            hourlyAvgPrice = hourlyAvgPrice,
+                            fiveMinPrice = fiveMinPrice,
+                        )
+
+                    val currentCache = cacheStore.getCachedPrice()
+                    if (currentCache?.timestampMillisUtc != timestamp ||
+                        currentCache.hourlyAvgPrice != hourlyAvgPrice ||
+                        currentCache.fiveMinPrice != fiveMinPrice
+                    ) {
+                        cacheStore.save(cachedPrice)
+                    }
+
+                    FetchResult.Success(cachedPrice)
+                }
             }
-
-            FetchResult.Success(cachedPrice)
+        } catch (exception: Exception) {
+            FetchResult.Error(
+                message = exception.message ?: "Failed to fetch data",
+                cachedFallback = cacheStore.getCachedPrice(),
+            )
         }
-    }
+
+    suspend fun fetchCurrentHourAverage(): FetchResult = fetchPricesCombined()
+
+    suspend fun fetchFiveMinutePrice(): FetchResult = fetchPricesCombined()
 }

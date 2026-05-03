@@ -12,18 +12,23 @@ import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
 import com.nortano.comedhourlypricing.R
+import com.nortano.comedhourlypricing.data.CachedPrice
 import com.nortano.comedhourlypricing.data.local.PriceCacheStore
 import com.nortano.comedhourlypricing.ui.PriceTier
 import com.nortano.comedhourlypricing.ui.color
 
-class PriceComplicationService : SuspendingComplicationDataSourceService() {
+abstract class BasePriceComplicationService : SuspendingComplicationDataSourceService() {
+    abstract fun getPriceText(cachedData: CachedPrice?): String
+
+    abstract fun getLabelResId(): Int
+
     @SuppressLint("WearRecents")
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
         val cacheStore = PriceCacheStore(applicationContext)
 
         // Complications should use local cache to avoid exceeding the system timeout
         val cachedData = cacheStore.getCachedPrice()
-        val priceText = cachedData?.price ?: getString(R.string.empty_price)
+        val priceText = getPriceText(cachedData)
 
         val tier = PriceTier.fromPrice(priceText)
 
@@ -58,7 +63,7 @@ class PriceComplicationService : SuspendingComplicationDataSourceService() {
                         contentDescription =
                             PlainComplicationText
                                 .Builder(
-                                    text = getString(R.string.tile_label),
+                                    text = getString(getLabelResId()),
                                 ).build(),
                     ).setMonochromaticImage(
                         androidx.wear.watchface.complications.data.MonochromaticImage
@@ -81,7 +86,7 @@ class PriceComplicationService : SuspendingComplicationDataSourceService() {
         return ShortTextComplicationData
             .Builder(
                 text = PlainComplicationText.Builder(text = getString(R.string.price_with_unit, "2.4")).build(),
-                contentDescription = PlainComplicationText.Builder(text = getString(R.string.tile_label)).build(),
+                contentDescription = PlainComplicationText.Builder(text = getString(getLabelResId())).build(),
             ).setMonochromaticImage(
                 androidx.wear.watchface.complications.data.MonochromaticImage
                     .Builder(

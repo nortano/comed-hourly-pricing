@@ -50,7 +50,7 @@ fun tilePreview(context: Context): TilePreviewData {
             .setResponsiveContentInsetEnabled(true)
             .setPrimaryLabelTextContent(
                 Text
-                    .Builder(context, context.getString(R.string.tile_label))
+                    .Builder(context, context.getString(R.string.tile_label_5min))
                     .setTypography(Typography.TYPOGRAPHY_TITLE3)
                     .setColor(ColorBuilders.argb(ContextCompat.getColor(context, android.R.color.white)))
                     .build(),

@@ -8,7 +8,11 @@ import androidx.wear.protolayout.ColorBuilders
 import androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters
 import androidx.wear.protolayout.DimensionBuilders.dp
 import androidx.wear.protolayout.DimensionBuilders.expand
+import androidx.wear.protolayout.DimensionBuilders.sp
 import androidx.wear.protolayout.LayoutElementBuilders
+import androidx.wear.protolayout.LayoutElementBuilders.FontStyle
+import androidx.wear.protolayout.LayoutElementBuilders.SpanText
+import androidx.wear.protolayout.LayoutElementBuilders.Spannable
 import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.protolayout.ResourceBuilders
 import androidx.wear.protolayout.TimelineBuilders
@@ -20,10 +24,12 @@ import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.TileBuilders
 import com.google.android.horologist.tiles.SuspendingTileService
 import com.nortano.comedhourlypricing.R
+import com.nortano.comedhourlypricing.data.CachedPrice
 import com.nortano.comedhourlypricing.data.PriceRepository
 import com.nortano.comedhourlypricing.data.local.PriceCacheStore
 import com.nortano.comedhourlypricing.data.remote.RetrofitClient
 import com.nortano.comedhourlypricing.ui.PriceTier
+import com.nortano.comedhourlypricing.ui.PriceTrend
 import com.nortano.comedhourlypricing.ui.color
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -31,7 +37,11 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @OptIn(com.google.android.horologist.annotations.ExperimentalHorologistApi::class)
-class PriceTileService : SuspendingTileService() {
+abstract class BasePriceTileService : SuspendingTileService() {
+    abstract fun getPriceText(cachedData: CachedPrice?): String
+
+    abstract fun getLabelResId(): Int
+
     override suspend fun tileRequest(requestParams: RequestBuilders.TileRequest): TileBuilders.Tile {
         val cacheStore = PriceCacheStore(applicationContext)
 
@@ -40,7 +50,7 @@ class PriceTileService : SuspendingTileService() {
         if (requestParams.currentState.lastClickableId == "refresh") {
             val oldTimestamp = cacheStore.getCachedPrice()?.timestampMillisUtc
             val repository = PriceRepository(RetrofitClient.apiService, cacheStore)
-            repository.fetchCurrentHourAverage()
+            repository.fetchPricesCombined()
             val newTimestamp = cacheStore.getCachedPrice()?.timestampMillisUtc
 
             if (oldTimestamp != null && oldTimestamp == newTimestamp) {
@@ -49,11 +59,9 @@ class PriceTileService : SuspendingTileService() {
         }
 
         val cachedData = cacheStore.getCachedPrice()
-
-        // As a best practice, tiles shouldn't block rendering waiting for the network.
-        // We'll read from cache. A background Worker handles refreshing the cache.
-        val priceText = cachedData?.price ?: getString(R.string.empty_price)
+        val priceText = getPriceText(cachedData)
         val timestamp = cachedData?.timestampMillisUtc
+        val trend = PriceTrend.calculate(cachedData?.fiveMinPrice, cachedData?.hourlyAvgPrice)
 
         val tier = PriceTier.fromPrice(priceText)
         val deviceParams = requestParams.deviceConfiguration
@@ -62,9 +70,8 @@ class PriceTileService : SuspendingTileService() {
             // Schedule a refresh in 5 seconds to clear the "no new data" text
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch {
                 kotlinx.coroutines.delay(5000)
-                androidx.wear.tiles.TileService
-                    .getUpdater(applicationContext)
-                    .requestUpdate(PriceTileService::class.java)
+                getUpdater(applicationContext)
+                    .requestUpdate(this@BasePriceTileService::class.java)
             }
         }
 
@@ -81,7 +88,14 @@ class PriceTileService : SuspendingTileService() {
                                 LayoutElementBuilders.Layout
                                     .Builder()
                                     .setRoot(
-                                        createLayout(priceText, timestamp, tier, deviceParams, showNoNewDataMessage),
+                                        createLayout(
+                                            priceText = priceText,
+                                            timestamp = timestamp,
+                                            tier = tier,
+                                            trend = trend,
+                                            deviceParameters = deviceParams,
+                                            showNoNewDataMessage = showNoNewDataMessage,
+                                        ),
                                     ).build(),
                             ).build(),
                     ).build(),
@@ -93,12 +107,33 @@ class PriceTileService : SuspendingTileService() {
         ResourceBuilders.Resources
             .Builder()
             .setVersion("2")
-            .build()
+            .addIdToImageMapping(
+                "ic_trending_up",
+                ResourceBuilders.ImageResource
+                    .Builder()
+                    .setAndroidResourceByResId(
+                        ResourceBuilders.AndroidImageResourceByResId
+                            .Builder()
+                            .setResourceId(R.drawable.ic_trending_up)
+                            .build(),
+                    ).build(),
+            ).addIdToImageMapping(
+                "ic_trending_down",
+                ResourceBuilders.ImageResource
+                    .Builder()
+                    .setAndroidResourceByResId(
+                        ResourceBuilders.AndroidImageResourceByResId
+                            .Builder()
+                            .setResourceId(R.drawable.ic_trending_down)
+                            .build(),
+                    ).build(),
+            ).build()
 
     private fun createLayout(
         priceText: String,
         timestamp: Long?,
         tier: PriceTier,
+        trend: PriceTrend,
         deviceParameters: DeviceParameters,
         showNoNewDataMessage: Boolean = false,
     ): LayoutElementBuilders.LayoutElement {
@@ -127,20 +162,90 @@ class PriceTileService : SuspendingTileService() {
         val formatter = DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault())
         val timeText = timestamp?.let { formatter.format(Instant.ofEpochMilli(it)) } ?: getString(R.string.empty_price)
 
-        val contentColumn =
+        val priceRow =
+            LayoutElementBuilders.Row
+                .Builder()
+                .setVerticalAlignment(LayoutElementBuilders.VERTICAL_ALIGN_CENTER)
+
+        if (trend == PriceTrend.DOWN) {
+            @Suppress("DEPRECATION")
+            val image =
+                LayoutElementBuilders.Image
+                    .Builder()
+                    .setResourceId("ic_trending_down")
+                    .setWidth(dp(20f))
+                    .setHeight(dp(20f))
+                    .build()
+            priceRow
+                .addContent(image)
+                .addContent(
+                    LayoutElementBuilders.Spacer
+                        .Builder()
+                        .setWidth(dp(4f))
+                        .build(),
+                )
+        }
+
+        val color = ColorBuilders.argb(tier.color.toArgb())
+
+        val priceSpannable =
+            Spannable
+                .Builder()
+                .addSpan(
+                    SpanText
+                        .Builder()
+                        .setText(priceText)
+                        .setFontStyle(
+                            FontStyle
+                                .Builder()
+                                .setSize(sp(48f))
+                                .setColor(color)
+                                .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
+                                .build(),
+                        ).build(),
+                ).addSpan(
+                    SpanText
+                        .Builder()
+                        .setText(" ¢")
+                        .setFontStyle(
+                            FontStyle
+                                .Builder()
+                                .setSize(sp(24f))
+                                .setColor(color)
+                                .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
+                                .build(),
+                        ).build(),
+                ).build()
+
+        priceRow.addContent(priceSpannable)
+
+        if (trend == PriceTrend.UP) {
+            @Suppress("DEPRECATION")
+            val image =
+                LayoutElementBuilders.Image
+                    .Builder()
+                    .setResourceId("ic_trending_up")
+                    .setWidth(dp(20f))
+                    .setHeight(dp(20f))
+                    .build()
+            priceRow
+                .addContent(
+                    LayoutElementBuilders.Spacer
+                        .Builder()
+                        .setWidth(dp(4f))
+                        .build(),
+                ).addContent(image)
+        }
+
+        val contentColumnBuilder =
             LayoutElementBuilders.Column
                 .Builder()
                 .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
+                .addContent(priceRow.build())
                 .addContent(
-                    Text
-                        .Builder(applicationContext, getString(R.string.price_with_unit, priceText))
-                        .setTypography(Typography.TYPOGRAPHY_DISPLAY1)
-                        .setColor(ColorBuilders.argb(tier.color.toArgb()))
-                        .build(),
-                ).addContent(
                     LayoutElementBuilders.Spacer
                         .Builder()
-                        .setHeight(dp(4f))
+                        .setHeight(dp(2f))
                         .build(),
                 ).addContent(
                     Text
@@ -148,7 +253,24 @@ class PriceTileService : SuspendingTileService() {
                         .setTypography(Typography.TYPOGRAPHY_CAPTION1)
                         .setColor(ColorBuilders.argb(ContextCompat.getColor(this, android.R.color.white)))
                         .build(),
-                ).build()
+                )
+
+        if (showNoNewDataMessage) {
+            contentColumnBuilder
+                .addContent(
+                    LayoutElementBuilders.Spacer
+                        .Builder()
+                        .setHeight(dp(2f))
+                        .build(),
+                ).addContent(
+                    Text
+                        .Builder(applicationContext, getString(R.string.no_new_data))
+                        .setTypography(Typography.TYPOGRAPHY_CAPTION2)
+                        .setItalic(true)
+                        .setColor(ColorBuilders.argb("#AAAAAA".toColorInt()))
+                        .build(),
+                )
+        }
 
         val primaryLayout =
             PrimaryLayout
@@ -156,11 +278,11 @@ class PriceTileService : SuspendingTileService() {
                 .setResponsiveContentInsetEnabled(true)
                 .setPrimaryLabelTextContent(
                     Text
-                        .Builder(applicationContext, getString(R.string.tile_label))
+                        .Builder(applicationContext, getString(getLabelResId()))
                         .setTypography(Typography.TYPOGRAPHY_CAPTION1)
                         .setColor(ColorBuilders.argb("#AAAAAA".toColorInt()))
                         .build(),
-                ).setContent(contentColumn)
+                ).setContent(contentColumnBuilder.build())
 
         val refreshClickable =
             ModifiersBuilders.Clickable
@@ -178,17 +300,6 @@ class PriceTileService : SuspendingTileService() {
                     refreshClickable,
                     deviceParameters,
                 ).build()
-
-        if (showNoNewDataMessage) {
-            primaryLayout.setSecondaryLabelTextContent(
-                Text
-                    .Builder(applicationContext, getString(R.string.no_new_data))
-                    .setTypography(Typography.TYPOGRAPHY_CAPTION2)
-                    .setItalic(true)
-                    .setColor(ColorBuilders.argb("#AAAAAA".toColorInt()))
-                    .build(),
-            )
-        }
 
         primaryLayout.setPrimaryChipContent(refreshChip)
 

@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -46,10 +47,18 @@ import com.nortano.comedhourlypricing.utils.getRelativeTime
 val PriceTier.color: Color
     get() =
         when (this) {
-            PriceTier.FREE -> Color(0xFF00E5FF) // Blue/Cyan for <= 0
-            PriceTier.NORMAL -> Color(0xFF00E676) // Neon Green for 0 - 5.0
-            PriceTier.ELEVATED -> Color(0xFFFFEA00) // Yellow for 5.0 - 9.9
-            PriceTier.HIGH -> Color(0xFFFF1744) // Red for >= 10.0
+            PriceTier.FREE -> Color(0xFF00E5FF)
+
+            // Blue/Cyan for <= 0
+            PriceTier.NORMAL -> Color(0xFF00E676)
+
+            // Neon Green for 0 - 5.0
+            PriceTier.ELEVATED -> Color(0xFFFFEA00)
+
+            // Yellow for 5.0 - 9.9
+            PriceTier.HIGH -> Color(0xFFFF1744)
+
+            // Red for >= 10.0
             PriceTier.UNKNOWN -> Color.White
         }
 
@@ -129,9 +138,19 @@ fun PriceScreenContent(
                     val fullText = stringResource(R.string.price_with_unit, displayPrice)
 
                     Row(
-                        verticalAlignment = Alignment.Bottom,
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
+                        // Trend Icon (Left)
+                        if (state.priceTrend == PriceTrend.DOWN) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_trending_down),
+                                contentDescription = "Trending Down",
+                                tint = Color(0xFF00E676),
+                                modifier = Modifier.size(32.dp).padding(end = 8.dp),
+                            )
+                        }
+
                         Text(
                             text =
                                 buildAnnotatedString {
@@ -159,6 +178,16 @@ fun PriceScreenContent(
                             color = priceTier.color,
                             maxLines = 1,
                         )
+
+                        // Trend Icon (Right)
+                        if (state.priceTrend == PriceTrend.UP) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_trending_up),
+                                contentDescription = "Trending Up",
+                                tint = Color(0xFFFF1744),
+                                modifier = Modifier.size(32.dp).padding(start = 8.dp),
+                            )
+                        }
                     }
 
                     // Hourly Average

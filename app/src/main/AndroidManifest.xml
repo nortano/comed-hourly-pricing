@@ -17,10 +17,6 @@
             android:name="com.google.android.wearable"
             android:required="true" />
 
-        <!--
-               Set to true if your app is Standalone, that is, it does not require the handheld
-               app to run.
-        -->
         <meta-data
             android:name="com.google.android.wearable.standalone"
             android:value="true" />
@@ -28,6 +24,7 @@
         <activity
             android:name=".presentation.MainActivity"
             android:exported="true"
+            android:icon="@drawable/splash_icon"
             android:taskAffinity=""
             android:theme="@style/MainActivityTheme.Starting">
             <intent-filter>
@@ -38,10 +35,10 @@
         </activity>
 
         <service
-            android:name=".presentation.PriceComplicationService"
+            android:name=".presentation.FiveMinPriceComplicationService"
             android:exported="true"
-            android:icon="@drawable/ic_bolt"
-            android:label="Comed Price"
+            android:icon="@drawable/splash_icon"
+            android:label="@string/complication_label_5min"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
@@ -56,10 +53,28 @@
         </service>
 
         <service
-            android:name=".presentation.PriceTileService"
+            android:name=".presentation.HourlyPriceComplicationService"
             android:exported="true"
-            android:icon="@drawable/ic_bolt"
-            android:label="Comed Price Tile"
+            android:icon="@drawable/splash_icon"
+            android:label="@string/complication_label_hourly"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT" />
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="300" />
+        </service>
+
+        <service
+            android:name=".presentation.FiveMinPriceTileService"
+            android:exported="true"
+            android:icon="@drawable/splash_icon"
+            android:label="@string/tile_label_5min"
             android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
             <intent-filter>
                 <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
@@ -67,7 +82,22 @@
 
             <meta-data
                 android:name="androidx.wear.tiles.PREVIEW"
-                android:resource="@drawable/ic_bolt" />
+                android:resource="@drawable/splash_icon" />
+        </service>
+
+        <service
+            android:name=".presentation.HourlyPriceTileService"
+            android:exported="true"
+            android:icon="@drawable/splash_icon"
+            android:label="@string/tile_label_hourly"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/splash_icon" />
         </service>
     </application>
 
