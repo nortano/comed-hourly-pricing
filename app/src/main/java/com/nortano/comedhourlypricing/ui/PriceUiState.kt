@@ -22,11 +22,36 @@ enum class PriceTier {
     }
 }
 
+enum class PriceTrend {
+    UP,
+    DOWN,
+    STAGNANT,
+    UNKNOWN,
+    ;
+
+    companion object {
+        fun calculate(
+            fiveMinPrice: String?,
+            hourlyAvgPrice: String?,
+        ): PriceTrend {
+            val fiveMin = fiveMinPrice?.toDoubleOrNull() ?: return UNKNOWN
+            val hourly = hourlyAvgPrice?.toDoubleOrNull() ?: return UNKNOWN
+
+            return when {
+                fiveMin > hourly -> UP
+                fiveMin < hourly -> DOWN
+                else -> STAGNANT
+            }
+        }
+    }
+}
+
 data class PriceUiState(
     val isRefreshing: Boolean = false,
     val priceText: String? = null,
     val hourlyAvgPriceText: String? = null,
     val priceTier: PriceTier = PriceTier.UNKNOWN,
+    val priceTrend: PriceTrend = PriceTrend.UNKNOWN,
     val updatedAtMillis: Long? = null,
     val errorMessage: String? = null,
 )

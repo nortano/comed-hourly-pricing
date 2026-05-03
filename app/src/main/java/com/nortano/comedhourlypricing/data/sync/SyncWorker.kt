@@ -16,8 +16,8 @@ class SyncWorker(
         val apiService = RetrofitClient.apiService
         val repository = PriceRepository(apiService, cacheStore)
 
-        // Fetch current hour average, the repository saves it to cache which triggers UI updates
-        repository.fetchCurrentHourAverage()
+        // Fetch both prices, the repository saves them to cache which triggers UI updates
+        repository.fetchPricesCombined()
 
         return Result.success()
     }

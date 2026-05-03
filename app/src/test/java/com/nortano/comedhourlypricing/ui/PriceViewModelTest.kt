@@ -39,10 +39,12 @@ class PriceViewModelTest {
     @Test
     fun `init loads cached price and then refreshes`() =
         runTest {
-            val cachedPrice = CachedPrice("2.5", 1000L)
+            val cachedPrice = CachedPrice("2.5", 1000L, hourlyAvgPrice = "2.4", fiveMinPrice = "2.5")
             coEvery { repository.getCachedPrice() } returns cachedPrice
-            coEvery { repository.fetchFiveMinutePrice() } returns FetchResult.Success(CachedPrice("3.0", 2000L))
-            coEvery { repository.fetchCurrentHourAverage() } returns FetchResult.Success(CachedPrice("3.2", 2000L))
+            coEvery { repository.fetchPricesCombined() } returns
+                FetchResult.Success(
+                    CachedPrice("3.0", 2000L, hourlyAvgPrice = "2.8", fiveMinPrice = "3.0"),
+                )
 
             val viewModel = PriceViewModel(repository)
 
@@ -51,8 +53,9 @@ class PriceViewModelTest {
 
             val state = viewModel.uiState.value
             assertEquals("3.0", state.priceText)
-            assertEquals("3.2", state.hourlyAvgPriceText)
+            assertEquals("2.8", state.hourlyAvgPriceText)
             assertEquals(PriceTier.NORMAL, state.priceTier)
+            assertEquals(PriceTrend.UP, state.priceTrend)
             assertEquals(2000L, state.updatedAtMillis)
             assertFalse(state.isRefreshing)
         }
@@ -61,17 +64,19 @@ class PriceViewModelTest {
     fun `refresh emits isRefreshing true then false`() =
         runTest {
             coEvery { repository.getCachedPrice() } returns null
-            coEvery { repository.fetchFiveMinutePrice() } returns FetchResult.Success(CachedPrice("3.0", 2000L))
-            coEvery { repository.fetchCurrentHourAverage() } returns FetchResult.Success(CachedPrice("3.2", 2000L))
+            coEvery { repository.fetchPricesCombined() } returns
+                FetchResult.Success(
+                    CachedPrice("3.0", 2000L, hourlyAvgPrice = "3.2", fiveMinPrice = "3.0"),
+                )
 
             val viewModel = PriceViewModel(repository)
 
             viewModel.uiState.test {
-                // Initial default state emitted by MutableStateFlow construction
+                // Initial default state
                 assertFalse(awaitItem().isRefreshing)
-                // init block sets isRefreshing = true before any fetch completes
+                // init block sets isRefreshing = true
                 assertTrue(awaitItem().isRefreshing)
-                // Fetches complete — isRefreshing flips back to false
+                // Fetches complete
                 assertFalse(awaitItem().isRefreshing)
 
                 cancelAndIgnoreRemainingEvents()
@@ -79,12 +84,14 @@ class PriceViewModelTest {
         }
 
     @Test
-    fun `refresh shows error when five minute fetch fails`() =
+    fun `refresh shows error when fetch fails`() =
         runTest {
             coEvery { repository.getCachedPrice() } returns null
-            coEvery { repository.fetchFiveMinutePrice() } returns
-                FetchResult.Error("Network Error", CachedPrice("1.0", 1000L))
-            coEvery { repository.fetchCurrentHourAverage() } returns FetchResult.Success(CachedPrice("1.5", 2000L))
+            coEvery { repository.fetchPricesCombined() } returns
+                FetchResult.Error(
+                    "Network Error",
+                    CachedPrice("1.0", 1000L, hourlyAvgPrice = "1.5", fiveMinPrice = "1.0"),
+                )
 
             val viewModel = PriceViewModel(repository)
             advanceUntilIdle()
@@ -94,19 +101,20 @@ class PriceViewModelTest {
             assertEquals("1.0", state.priceText) // Fallback price
             assertEquals("1.5", state.hourlyAvgPriceText)
             assertEquals("Network Error", state.errorMessage)
+            assertEquals(PriceTrend.DOWN, state.priceTrend)
         }
 
     @Test
     fun `refresh uses previous state when error has no fallback`() =
         runTest {
-            coEvery { repository.getCachedPrice() } returns CachedPrice("4.0", 500L)
-            coEvery { repository.fetchFiveMinutePrice() } returns FetchResult.Success(CachedPrice("4.0", 500L))
-            coEvery { repository.fetchCurrentHourAverage() } returns FetchResult.Success(CachedPrice("4.0", 500L))
+            val cached = CachedPrice("4.0", 500L, hourlyAvgPrice = "4.0", fiveMinPrice = "4.0")
+            coEvery { repository.getCachedPrice() } returns cached
+            coEvery { repository.fetchPricesCombined() } returns FetchResult.Success(cached)
             val viewModel = PriceViewModel(repository)
             advanceUntilIdle() // Initializes with 4.0
 
             // Now fail refresh
-            coEvery { repository.fetchFiveMinutePrice() } returns FetchResult.Error("Timeout", null)
+            coEvery { repository.fetchPricesCombined() } returns FetchResult.Error("Timeout", null)
             viewModel.refresh()
             advanceUntilIdle()
 
@@ -122,17 +130,13 @@ class PriceViewModelTest {
         runTest {
             // Use a never-completing stub so isRefreshing stays true indefinitely
             coEvery { repository.getCachedPrice() } returns null
-            coEvery { repository.fetchFiveMinutePrice() } coAnswers {
+            coEvery { repository.fetchPricesCombined() } coAnswers {
                 // Suspend until the test coroutine advances
-                kotlinx.coroutines.awaitCancellation()
-            }
-            coEvery { repository.fetchCurrentHourAverage() } coAnswers {
                 kotlinx.coroutines.awaitCancellation()
             }
 
             val viewModel = PriceViewModel(repository)
-            // Advance past the init cache read but not past the suspended fetch calls —
-            // the viewModel is now mid-refresh with isRefreshing = true.
+            // Advance past the init cache read but not past the suspended fetch calls
             testScheduler.advanceTimeBy(1)
 
             assertTrue(viewModel.uiState.value.isRefreshing)
@@ -140,53 +144,54 @@ class PriceViewModelTest {
             // A second refresh() call while already refreshing must be a no-op.
             viewModel.refresh()
 
-            // fetchFiveMinutePrice should only have been called once (from init's refresh).
-            coVerify(exactly = 1) { repository.fetchFiveMinutePrice() }
+            // fetchPricesCombined should only have been called once (from init's refresh).
+            coVerify(exactly = 1) { repository.fetchPricesCombined() }
         }
 
     @Test
-    fun `refresh shows error when only hourly fetch fails`() =
+    fun `refresh success with stagnant trend when fiveMin equals hourly`() =
         runTest {
             coEvery { repository.getCachedPrice() } returns null
-            coEvery { repository.fetchFiveMinutePrice() } returns FetchResult.Success(CachedPrice("5.0", 4000L))
-            coEvery { repository.fetchCurrentHourAverage() } returns
-                FetchResult.Error("Hourly fetch failed", CachedPrice("4.5", 3000L))
+            coEvery { repository.fetchPricesCombined() } returns
+                FetchResult.Success(
+                    CachedPrice("2.5", 1000L, hourlyAvgPrice = "2.5", fiveMinPrice = "2.5"),
+                )
 
             val viewModel = PriceViewModel(repository)
             advanceUntilIdle()
 
             val state = viewModel.uiState.value
             assertFalse(state.isRefreshing)
-            // Five-minute price succeeded — it should be reflected
-            assertEquals("5.0", state.priceText)
-            // Hourly failed — fallback from the error's cachedFallback
-            assertEquals("4.5", state.hourlyAvgPriceText)
-            assertEquals("Hourly fetch failed", state.errorMessage)
+            assertEquals("2.5", state.priceText)
+            assertEquals(PriceTrend.STAGNANT, state.priceTrend)
+            assertEquals(PriceTier.NORMAL, state.priceTier)
         }
 
     @Test
-    fun `refresh shows error when both fetches fail`() =
+    fun `refresh error uses prior priceText as fiveMin when fallback fiveMinPrice is null`() =
         runTest {
-            coEvery { repository.getCachedPrice() } returns CachedPrice("6.0", 500L)
-            coEvery { repository.fetchFiveMinutePrice() } returns FetchResult.Success(CachedPrice("6.0", 500L))
-            coEvery { repository.fetchCurrentHourAverage() } returns FetchResult.Success(CachedPrice("6.0", 500L))
+            // Pre-load state with a known price of "4.0"
+            val initial = CachedPrice("4.0", 500L, hourlyAvgPrice = "4.0", fiveMinPrice = "4.0")
+            coEvery { repository.getCachedPrice() } returns initial
+            coEvery { repository.fetchPricesCombined() } returns FetchResult.Success(initial)
             val viewModel = PriceViewModel(repository)
-            advanceUntilIdle()
+            advanceUntilIdle() // state: priceText = "4.0"
 
-            // Now make both fail
-            coEvery { repository.fetchFiveMinutePrice() } returns
-                FetchResult.Error("5-min timeout", CachedPrice("6.0", 500L))
-            coEvery { repository.fetchCurrentHourAverage() } returns
-                FetchResult.Error("Hourly timeout", CachedPrice("6.0", 500L))
+            // Fail with a fallback that has a different price but no fiveMinPrice.
+            // The ViewModel falls back to it.priceText ("4.0") for fiveMin.
+            // fallback.price ("6.0") is used as priceText; hourly is "3.0".
+            // PriceTrend.calculate("4.0", "3.0") → UP.
+            val fallback = CachedPrice("6.0", 600L, hourlyAvgPrice = "3.0", fiveMinPrice = null)
+            coEvery { repository.fetchPricesCombined() } returns FetchResult.Error("Server error", fallback)
             viewModel.refresh()
             advanceUntilIdle()
 
             val state = viewModel.uiState.value
             assertFalse(state.isRefreshing)
-            // Five-minute error message takes precedence in the when{} expression
-            assertEquals("5-min timeout", state.errorMessage)
-            // Prices fall back to cachedFallback values from each error
             assertEquals("6.0", state.priceText)
-            assertEquals("6.0", state.hourlyAvgPriceText)
+            assertEquals("3.0", state.hourlyAvgPriceText)
+            assertEquals("Server error", state.errorMessage)
+            // fiveMin="4.0" (prior priceText), hourly="3.0" → UP
+            assertEquals(PriceTrend.UP, state.priceTrend)
         }
 }
