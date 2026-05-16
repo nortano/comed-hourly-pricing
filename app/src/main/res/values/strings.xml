@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">ComEd Hourly Pricing</string>
+    <string name="app_name">Hourly Pricing for ComEd</string>
     <string name="error_label">Error</string>
     <string name="no_data">No data</string>
     <string name="hourly_label">Hourly: %1$s¢</string>
@@ -9,11 +9,11 @@
     <string name="refresh_description">Refresh</string>
     <string name="price_with_unit">%1$s ¢</string>
     <string name="as_of_time">As of %1$s</string>
-    <string name="tile_label_5min">ComEd 5min Price</string>
-    <string name="tile_label_hourly">ComEd Hourly Price</string>
-    <string name="complication_label_5min">ComEd 5min Price</string>
-    <string name="complication_label_hourly">ComEd Hourly Price</string>
+    <string name="tile_label_5min">5min Price (ComEd)</string>
+    <string name="tile_label_hourly">Hourly Price (ComEd)</string>
+    <string name="complication_label_5min">5min Price (ComEd)</string>
+    <string name="complication_label_hourly">Hourly Price (ComEd)</string>
     <string name="empty_price">--</string>
-    <string name="comed_5_min_price_label">ComEd 5min Price</string>
+    <string name="comed_5_min_price_label">5min Price (ComEd)</string>
     <string name="no_new_data">(no new data)</string>
 </resources>
