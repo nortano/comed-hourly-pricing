@@ -1,5 +1,9 @@
 # Release Notes - Hourly Pricing for ComEd
 
+## [1.0.1] - (versionCode: 2)
+### Improvements
+- Added native debug symbols to improve crash reporting and diagnostics in the Google Play Console.
+
 ## [1.0.0] - (versionCode: 1)
 ### Initial Release (en-US)
 Initial release of Hourly Pricing for ComEd for Wear OS!
