@@ -126,7 +126,7 @@ fun PriceScreenContent(
 
                     // 5-min Price Label
                     Text(
-                        text = stringResource(R.string.comed_5_min_price_label),
+                        text = stringResource(R.string.label_5min),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFFAAAAAA),

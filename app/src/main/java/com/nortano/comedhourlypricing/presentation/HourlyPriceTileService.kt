@@ -7,5 +7,5 @@ class HourlyPriceTileService : BasePriceTileService() {
     override fun getPriceText(cachedData: CachedPrice?): String =
         cachedData?.hourlyAvgPrice ?: getString(R.string.empty_price)
 
-    override fun getLabelResId(): Int = R.string.tile_label_hourly
+    override fun getLabelResId(): Int = R.string.label_hourly
 }

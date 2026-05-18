@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/splash_icon,@drawable/ic_bolt,@drawable/ic_trending_up,@drawable/ic_trending_down" />

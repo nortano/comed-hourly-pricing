@@ -9,11 +9,10 @@
     <string name="refresh_description">Refresh</string>
     <string name="price_with_unit">%1$s ¢</string>
     <string name="as_of_time">As of %1$s</string>
-    <string name="tile_label_5min">5min Price (ComEd)</string>
-    <string name="tile_label_hourly">Hourly Price (ComEd)</string>
-    <string name="complication_label_5min">5min Price (ComEd)</string>
-    <string name="complication_label_hourly">Hourly Price (ComEd)</string>
+    <string name="label_5min">5-Min Price (ComEd)</string>
+    <string name="label_hourly">Hourly Price (ComEd)</string>
+    <string name="short_label_5min">5-Min Price</string>
+    <string name="short_label_hourly">Hourly Price</string>
     <string name="empty_price">--</string>
-    <string name="comed_5_min_price_label">5min Price (ComEd)</string>
     <string name="no_new_data">(no new data)</string>
 </resources>

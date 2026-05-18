@@ -7,5 +7,5 @@ class FiveMinPriceTileService : BasePriceTileService() {
     override fun getPriceText(cachedData: CachedPrice?): String =
         cachedData?.fiveMinPrice ?: getString(R.string.empty_price)
 
-    override fun getLabelResId(): Int = R.string.tile_label_5min
+    override fun getLabelResId(): Int = R.string.label_5min
 }
