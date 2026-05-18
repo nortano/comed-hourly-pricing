@@ -1,5 +1,12 @@
 # Release Notes - Hourly Pricing for ComEd
 
+## [1.0.5] - (versionCode: 6)
+### Improvements
+- Tile and complication picker labels are now shorter: "5-Min Price" and "Hourly Price".
+- Complications now display a dedicated bolt icon in the picker instead of the app icon.
+- Tile picker previews now show accurate tile screenshots instead of the app icon.
+- Deduplicated string resources and consolidated label strings.
+
 ## [1.0.1] - (versionCode: 2)
 ### Improvements
 - Added native debug symbols to improve crash reporting and diagnostics in the Google Play Console.
